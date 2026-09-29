@@ -1,0 +1,34 @@
+# Python virtual environment
+.venv/
+venv/
+
+# Python pytecode/caches
+__pycache__/
+*.py[cd]
+*$py.class
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dataset files (too large for repo)
+data/*.csv
+data/*.zip
+data/raw/
+data/stream_data.parquet/
+
+# Spark local artefacts
+spark-warehouse/
+metastore_db/
+derby.log
+*.crc
+
+# Kaggle API credentials
+kaggle.json
+.kaggle/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
