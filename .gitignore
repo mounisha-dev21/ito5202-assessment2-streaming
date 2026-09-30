@@ -32,3 +32,10 @@ kaggle.json
 # Editor
 .vscode/
 .idea/
+
+# Streaming outputs
+output/
+checkpoints/
+
+# Scratch work
+scratch/
