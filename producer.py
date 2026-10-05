@@ -39,7 +39,7 @@ logging.basicConfig(
 
 log = logging.getLogger("producer")
 
-# Hide the Kafka library's internal connection messages, keeping only warnings and errors
+# Hide the Kafka connection messages
 logging.getLogger("kafka").setLevel(logging.WARNING)
 
 
