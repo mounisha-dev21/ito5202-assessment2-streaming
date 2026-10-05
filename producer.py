@@ -39,6 +39,9 @@ logging.basicConfig(
 
 log = logging.getLogger("producer")
 
+# Hide the Kafka library's internal connection messages, keeping only warnings and errors
+logging.getLogger("kafka").setLevel(logging.WARNING)
+
 
 def parse_args():
     # Read options passed in from the command line
