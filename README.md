@@ -104,19 +104,19 @@ We need to ensure that we always stop Kafka before ZooKeeper. Press Ctrl+C (on a
 
 ## Running the notebook
 
-### Part A and saving the model
-
 The project runs in two main phases. Importantly, **Kafka should be stopped during Part A**. We found during development that the model training component of Part A was the most memory-intensive step, and running Spark alongside ZooKeeper and Kafka on an 8 GB machine caused our Spark driver to crash. As such, we want to complete Part A first, clear the cached data, and only then start Kafka for Part B.
 
 Below, we detail the steps in chronological order for running the notebook successfully.
 
-### Part A and saving the model
+### 1. Part A and saving the model
 
 We want to first make sure that the dataset is available in data/raw/, as described in data/README.md. We can then open the main assessment2.ipynb notebook file and select the .venv kernel.
 
 Rather than running the whole notebook at once, we want to click into the last code cell of Part A, which contains the following code:
 
-`spark.catalog.clearCache()`
+```
+spark.catalog.clearCache()
+```
 
 From here, in VS Code we can use **Notebook: Execute Above Cells** from the Command Palette to run all cells, except for the final one, of Part A (this should take ~15 minutes to complete).
 
@@ -124,13 +124,37 @@ Once all of the earlier cells have finished, we then want to run the `spark.cata
 
 To verify that this has completed successfully, Part A should have created the held-out streaming data at data/stream_data.parquet/ and save the fitted pipeline to models/a2_model/.
 
-### Starting the Kafka producer
+### 2. Starting the Kafka producer
 
 Once Part A has finished, we can start ZooKeeper, Kafka and the events topic in three terminals, following the instructions in the Starting Kafka section above.
 
-From our repository folder, with the virtual environment active (as created above in the Python instructions section), we want to run:
+### 3. Part B: streaming, scoring and monitoring
 
-```bash
+Once Kafka is running, we can return our notebook and navigate down to the first code cell of Part B. From here, we can run **Notebook: Execute Cell and Below**.
+
+We note that Part B should take around 15 minutes in total.
+
+The producer is launched directly from within the notebook using the same Python environment through sys.executable. Importantly, each producer cell sits directly after the cell that starts the relevant streaming query. This is because the consumer reads from the latest Kafka offset, meaning that the query must already be listening before the producer starts sending data.
+
+Part B runs three separate replays in order:
+
+1. A parsing test using 3 batches through the parse_test query
+2. A full replay scored by the saved model and written to Parquet through the freight_predictions query
+3. A second full replay used for the sliding-window aggregation through the freight_windows query
+
+Our predictions are then written to output/predictions/ as Parquet files, while streaming checkpoints are stored under checkpoints/.
+
+Also, we note that each query's start cell clears its previous output and checkpoint before beginning. This means that if we rerun Part B, the new streaming run starts cleanly rather than mixing its results with an earlier run.
+
+---
+
+## Running the producer manually
+
+Although the producer is normally launched from within the notebook, it can also be run manually from our repository folder if needed. To do this, we first want to ensure that the virtual environment active is active and that the relevant streaming query has already been started.
+
+Then, we can simply run the below in a new terminal within VS Code:
+
+```
 python producer.py
 ```
 
@@ -146,24 +170,19 @@ We note that the producer also accepts a few optional arguments:
 
 For example, if we ran the below:
 
-```bash
+```
 python producer.py --batch-size 1000
 ```
 
 This would send up to 1,000 records in each batch.
 
-**Batch size**
+### Batch size
 
-As we noted above, the default batch size is 500 records, which we note already sits inside the 100–1,000 range suggested in the assessment instructions. If we consider our specific use case, we know that our streaming subset contains 32,826 records, so this would produce 66 batches under the default batch size.
+As we noted above, the default batch size is 500 records, which already sits inside the 100–1,000 range suggested in the assessment instructions. If we consider our specific use case, we know that our streaming subset contains 32,826 records, so this produces 66 batches under the default batch size.
 
-With a five-second pause between batches, we can see that using the default size would mean that the full dataset would be replayed over roughly 5.5 minutes. Furthermore, a batch of 500 records is around 255 KB as JSON, so it also stays comfortably below Kafka's default 1 MB message size. As such, we want to stick to the default size rather than trying to set any other size restriction.
+With a five-second pause between batches, we can see that using the default size means that the full dataset is replayed over roughly 5.5 minutes. Furthermore, a batch of 500 records is around 255 KB as JSON, so it also stays comfortably below Kafka's default 1 MB message size. As such, we want to stick to the default size rather than trying to set any other size restriction.
 
 In order to get comfort in our choice, we also note that the producer logs each batch as it is sent, including the number of records, its publish time and the total sent so far. An example of this in the logs is as follows:
 
-```text
-2026-10-05 11:14:13,501 | INFO | Batch 1/66 | records: 500 | event_timestamp: 2026-10-05T00:14:13.321+00:00 | size: 254.6 KB | total sent: 500
-```
+`2026-10-05 11:14:13,501 | INFO | Batch 1/66 | records: 500 | event_timestamp: 2026-10-05T00:14:13.321+00:00 | size: 254.6 KB | total sent: 500`
 
-### 3. Run the streaming consumer
-
-_To be completed._
