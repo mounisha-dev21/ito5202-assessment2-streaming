@@ -85,7 +85,7 @@ bin/kafka-server-start.sh config/server.properties --override listeners=PLAINTEX
 
 We want to use the above `heap` setting so that Kafka is limited to 512 MB of memory. This ensure that we leave enough room for Spark on our 8 GB machine. Also, the listener overrides makes sure that Kafka identifies itself as `localhost`, in order to avoid hostname resolution issues.
 
-*Terminal 3: creating the topic* _**(first run only)**_
+*Terminal 3: creating the topic*
 
 ```bash
 cd ~/kafka_2.13-3.9.2
