@@ -124,7 +124,7 @@ Once all of the earlier cells have finished, we then want to run the `spark.cata
 
 To verify that this has completed successfully, Part A should have created the held-out streaming data at data/stream_data.parquet/ and save the fitted pipeline to models/a2_model/.
 
-### 2. Starting the Kafka producer
+### 2. Starting Kafka
 
 Once Part A has finished, we can start ZooKeeper, Kafka and the events topic in three terminals, following the instructions in the Starting Kafka section above.
 
