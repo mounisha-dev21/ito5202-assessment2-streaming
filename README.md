@@ -16,6 +16,13 @@
 | `models/a2_model/` | Persisted Spark ML PipelineModel from Part A |
 | `data/README.md` | Instructions for obtaining the source data |
 | `requirements.txt` | Python dependencies |
+| `.gitignore` | Excludes the virtual environment, raw data, generated data, streaming outputs and checkpoints |
+
+The following artefacts were also created locally when the project runs but are not committed: 
+- `data/raw/` (source CSVs)
+- `data/stream_data.parquet/` (streaming subset)
+- `output/predictions/` (streamed predictions)
+- `checkpoints/` (streaming query checkpoints)
 
 ---
 
@@ -82,10 +89,12 @@ We want to use the above `heap` setting so that Kafka is limited to 512 MB of me
 
 ```bash
 cd ~/kafka_2.13-3.9.2
-bin/kafka-topics.sh --create --topic events --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+bin/kafka-topics.sh --create --if-not-exists --topic events --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
 ```
 
 We note that the `events` topic uses one partition. This ensures that our records are kept in the same order that they are sent by the producer, which is useful for us here because the streaming data is being replayed in purchase-time order.
+
+We also note that `--if-not-exists` makes this safe for us to rerun as needed. This is important due to the fact that macOS clears `/tmp` on restart, which is where Kafka stores its data, so the topic may need recreating after a reboot.
 
 *Stopping Kafka*
 
@@ -97,9 +106,27 @@ We need to ensure that we always stop Kafka before ZooKeeper. Press Ctrl+C (on a
 
 ### Part A and saving the model
 
-We want to first open the main `assessment2.ipynb` notebook file and run the Setup and Part A sections. When this is done, it should create the held-out streaming data at `data/stream_data.parquet` and saves the fitted pipeline to `models/a2_model`.
+The project runs in two main phases. Importantly, **Kafka should be stopped during Part A**. We found during development that the model training component of Part A was the most memory-intensive step, and running Spark alongside ZooKeeper and Kafka on an 8 GB machine caused our Spark driver to crash. As such, we want to complete Part A first, clear the cached data, and only then start Kafka for Part B.
+
+Below, we detail the steps in chronological order for running the notebook successfully.
+
+### Part A and saving the model
+
+We want to first make sure that the dataset is available in data/raw/, as described in data/README.md. We can then open the main assessment2.ipynb notebook file and select the .venv kernel.
+
+Rather than running the whole notebook at once, we want to click into the last code cell of Part A, which contains the following code:
+
+`spark.catalog.clearCache()`
+
+From here, in VS Code we can use **Notebook: Execute Above Cells** from the Command Palette to run all cells, except for the final one, of Part A (this should take ~15 minutes to complete).
+
+Once all of the earlier cells have finished, we then want to run the `spark.catalog.clearCache()` cell itself. This releases the cached Part A data before we start Kafka and begin the streaming work.
+
+To verify that this has completed successfully, Part A should have created the held-out streaming data at data/stream_data.parquet/ and save the fitted pipeline to models/a2_model/.
 
 ### Starting the Kafka producer
+
+Once Part A has finished, we can start ZooKeeper, Kafka and the events topic in three terminals, following the instructions in the Starting Kafka section above.
 
 From our repository folder, with the virtual environment active (as created above in the Python instructions section), we want to run:
 
